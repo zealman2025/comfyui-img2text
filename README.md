@@ -1,6 +1,7 @@
 # ComfyUI-Qwen
 
 这是一个ComfyUI的千问API插件，支持图像和文本的多模态输入，并通过千问API进行处理。
+![workflow](https://github.com/user-attachments/assets/a25ba8ab-67e4-4a9a-81d8-7972fcc32217)
 
 ## 功能特点
 
