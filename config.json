@@ -1,3 +1,4 @@
 {
-    "api_key": "your-api-key-here"
-} 
+    "qwen_api_key": "你的key",
+    "xai_api_key": "你的key"
+}

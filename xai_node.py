@@ -33,18 +33,12 @@ try:
 except ImportError:
     HAS_OPENAI = False
 
-# 定义可用的模型
-QWEN_MODELS = {
- #   "qwen-turbo": "Qwen Turbo",
-    "qwen-plus": "Qwen Plus",
-    "qwen-max": "Qwen Max",
- #   "qwen-max-longcontext": "Qwen Max Long Context",
-    "qwen-vl-plus": "Qwen VL Plus",
-    "qwen-vl-max": "Qwen VL Max",
-#  "qwen-omni-turbo": "Qwen Omni Turbo",
+# 定义可用的XAI模型
+XAI_MODELS = {
+    "grok-2-vision-1212": "Grok 2 Vision 1212",
 }
 
-class QwenNode:
+class XAINode:
     def __init__(self):
         self.config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
         self.api_key = self._load_api_key()
@@ -54,23 +48,21 @@ class QwenNode:
         try:
             with open(self.config_path, 'r') as f:
                 config = json.load(f)
-                # 兼容旧的配置格式
-                return config.get('qwen_api_key', config.get('api_key', ''))
+                return config.get('xai_api_key', '')
         except Exception as e:
-            print(f"Error loading Qwen API key: {str(e)}")
+            print(f"Error loading XAI API key: {str(e)}")
             return ''
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": (list(QWEN_MODELS.keys()),),
+                "model": (list(XAI_MODELS.keys()),),
                 "prompt": ("STRING", {"multiline": True, "default": "Describe the image content in detail, without making comments or suggestions"}),
                 "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 4096}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0}),
                 "top_p": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-             #   "control_after_generate": (["fixed", "increment", "randomize"],),
             },
             "optional": {
                 "image": ("IMAGE",),
@@ -79,7 +71,7 @@ class QwenNode:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "process"
-    CATEGORY = "🍭Qwen"
+    CATEGORY = "🚀XAI"
 
     def _check_dependencies(self):
         """检查必要的依赖是否已安装"""
@@ -222,23 +214,19 @@ class QwenNode:
         missing_deps = self._check_dependencies()
         if missing_deps:
             return (f"Error: 缺少必要的依赖: {', '.join(missing_deps)}. 请安装这些依赖后再试。",)
-            
-        # 验证输入类型与模型是否匹配
-        if image is not None and not ("vl" in model or "omni" in model):
-            return ("Error: 所选型号不支持图像输入。请使用 VL（视觉语言）模型。Selected model does not support image input. Please use a VL (Vision Language) model.",)
 
         try:
-            print(f"Processing request with model: {model}")
+            print(f"Processing request with XAI model: {model}")
             print(f"Image provided: {image is not None}")
             print(f"Using seed: {seed}")
             
             if not HAS_OPENAI:
                 return ("Error: openai 软件包未安装。请使用以下命令安装它 'pip install openai'",)
                 
-            # 使用OpenAI兼容API
+            # 使用OpenAI兼容API调用XAI
             client = OpenAI(
                 api_key=self.api_key,
-                base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                base_url="https://api.x.ai/v1"
             )
 
             # 使用固定的system message
@@ -255,9 +243,9 @@ class QwenNode:
             user_content = []
             
             # 处理图像输入
-            if image is not None and ("vl" in model or "omni" in model):
+            if image is not None:
                 try:
-                    print(f"Processing image for API...")
+                    print(f"Processing image for XAI API...")
                     image_base64 = self._encode_image_to_base64(image)
                     user_content.append({
                         "type": "image_url",
@@ -282,23 +270,16 @@ class QwenNode:
                 "content": user_content
             })
 
-            print(f"Calling API with model: {model}")
+            print(f"Calling XAI API with model: {model}")
             completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                modalities=["text"],
-                stream=True,
-                stream_options={"include_usage": True},
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=top_p
             )
 
-            response_text = ""
-            for chunk in completion:
-                if chunk.choices:
-                    if chunk.choices[0].delta.content:
-                        response_text += chunk.choices[0].delta.content
+            response_text = completion.choices[0].message.content
 
             # 根据控制选项更新种子
             if control_after_generate == "increment":
@@ -311,14 +292,14 @@ class QwenNode:
             return (response_text,)
             
         except Exception as e:
-            print(f"Unexpected error in process: {str(e)}")
+            print(f"Unexpected error in XAI process: {str(e)}")
             print(traceback.format_exc())
             return (f"Error: {str(e)}",)
 
 NODE_CLASS_MAPPINGS = {
-    "QwenNode": QwenNode
+    "XAINode": XAINode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "QwenNode": "🍭Qwen AI"
-} 
+    "XAINode": "🚀XAI Grok"
+}
